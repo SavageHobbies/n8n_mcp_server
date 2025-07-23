@@ -1,0 +1,155 @@
+// .devcontainer/devcontainer.json
+{
+    "name": "Node.js & PostgreSQL - AI Vibe Edition", // More descriptive name
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "app",
+    "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+
+    "features": {
+        "ghcr.io/devcontainers/features/python:1": {
+            "version": "3.10" // Pin a version for consistency
+        },
+        "ghcr.io/devcontainers/features/sshd:1": {}, // Keep if you use SSH into the container
+        "ghcr.io/joedmck/devcontainer-features/wrangler:1": {},
+        "ghcr.io/devcontainers-community/npm-features/typescript:1": {},
+        "ghcr.io/schlich/devcontainer-features/playwright:0": {},
+        "ghcr.io/devcontainers-extra/features/digitalocean-cli:1": {},
+        "ghcr.io/devcontainers-extra/features/n8n:1": {}, // n8n is here!
+        "ghcr.io/devcontainers-extra/features/netlify-cli:1": {},
+        
+        // Add common utilities and Docker-in-Docker if needed for your app service
+        "ghcr.io/devcontainers/features/common-utils:2": {
+            "installZsh": true,
+            "configureZshAsDefault": true
+        },
+        "ghcr.io/devcontainers/features/git:1": {}, // Explicitly ensure Git is there
+        "ghcr.io/devcontainers/features/oh-my-zsh:0": {}, // For Zsh users
+        
+        // Docker-in-Docker for building/running other containers *from inside* your 'app' service
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {} 
+    },
+
+    // Uncomment and customize forwardPorts for your Node.js app and PostgreSQL
+    "forwardPorts": [3000, 5432], // Node.js app typically on 3000, PostgreSQL on 5432
+
+    // Uncomment and specify the postCreateCommand
+    "postCreateCommand": "bash .devcontainer/post-create.sh",
+
+    // Configure tool-specific properties for VS Code (very important for AI)
+    "customizations": {
+        "vscode": {
+            "settings": {
+                // General editor settings for a productive vibe
+                "editor.formatOnSave": true,
+                "editor.defaultFormatter": "esbenp.prettier-vscode",
+                "files.autoSave": "afterDelay",
+                "editor.wordWrap": "on",
+                "terminal.integrated.defaultProfile.linux": "zsh", // Use zsh if installed via features
+                "terminal.integrated.fontSize": 14,
+                "editor.renderWhitespace": "all",
+                "workbench.colorTheme": "Default Dark Modern", // Or your favorite theme
+                "editor.codeActionsOnSave": {
+                  "source.fixAll.eslint": "explicit" // Good for Node.js/TS
+                },
+                "[javascript]": { "editor.defaultFormatter": "dbaeumer.vscode-eslint" },
+                "[typescript]": { "editor.defaultFormatter": "dbaeumer.vscode-eslint" },
+                "[python]": { "editor.defaultFormatter": "ms-python.black-formatter" },
+
+
+                // **AI Tool-Agnostic Context Provisioning (MCP Setup)**
+                // This is where you tell your AI extensions where your custom context is.
+                // The exact setting name depends on the AI extension.
+                // You'll need to look up documentation for Kilo Code, Codeium, Continue.dev etc.
+                // If the AI tool supports it, this will make your _mcp folder accessible.
+
+                // Placeholder for Kilo Code's MCP directory setting:
+                "kiloCode.mcpSourceDirectory": "/workspaces/${localWorkspaceFolderBasename}/_mcp", 
+
+                // Example for Copilot Chat (if you want to give it custom instructions):
+                "github.copilot.chat.locale": "en-US",
+                "github.copilot.chat.editor.context.enabled": true,
+                "github.copilot.chat.codeGeneration.instructions": [
+                  { "text": "This project is a Node.js web application using Express and PostgreSQL. We use TypeScript for all backend and frontend code. Design adheres to a modular pattern with components/services. All database interactions should use Prisma. Prioritize secure coding practices. When generating UI, assume React components using Tailwind CSS. Refer to the project's `_mcp` folder for detailed design system, UX flows, and specific code patterns." }
+                ],
+                
+                // Example for Codeium (if it has similar context settings, check their docs)
+                "codeium.context.knowledgeBasePaths": ["/workspaces/${localWorkspaceFolderBasename}/_mcp"],
+
+                // Example for Continue.dev (if it has similar context settings, check their docs)
+                "continue.contextProviders": [
+                    { "name": "filesystem", "path": "/workspaces/${localWorkspaceFolderBasename}/_mcp" }
+                ],
+
+                // **Explicit MCP Server Definitions for AI Agents (The .vscode/mcp.json equivalent)**
+                // This is where you declare tools that AI *agents* can explicitly invoke.
+                // Some AI tools (like Copilot Chat's agent mode, or Kilo Code if it uses this spec)
+                // can "see" these defined "servers".
+                // You'd add this object if your AI assistants need to invoke these CLIs as specific tools.
+                "mcp.servers": {
+                    "wrangler": { // Name of the tool for the AI to refer to
+                        "command": "wrangler", // The actual CLI command
+                        "args": ["__mcp_gateway__"], // Placeholder: check if the CLI supports this
+                        "description": "Interact with Cloudflare Workers, Pages, and services."
+                    },
+                    "doctl": {
+                        "command": "doctl",
+                        "args": ["__mcp_gateway__"],
+                        "description": "Manage DigitalOcean resources like droplets, spaces, and apps."
+                    },
+                    "dockerCli": {
+                        "command": "docker",
+                        "args": ["__mcp_gateway__"],
+                        "description": "Run Docker commands for container management."
+                    },
+                    "n8nCli": { // If you want to control n8n from the CLI via AI
+                        "command": "n8n",
+                        "args": ["__mcp_gateway__"],
+                        "description": "Interact with n8n workflows and nodes."
+                    },
+                    "netlifyCli": {
+                        "command": "netlify",
+                        "args": ["__mcp_gateway__"],
+                        "description": "Manage Netlify sites and deployments."
+                    }
+                    // Add Kilo Code's specific MCP gateway if it exposes one
+                    // "kiloCodeAgent": {
+                    //    "command": "kilo-code-cli", // Or whatever its agent command is
+                    //    "args": ["mcp-gateway-mode"],
+                    //    "description": "Provides Kilo Code's advanced agent capabilities."
+                    // }
+                }
+            },
+            "extensions": [
+                // Core VS Code extensions
+                "esbenp.prettier-vscode",
+                "dbaeumer.vscode-eslint",
+                "eamodio.gitlens",
+                "vscode-icons.vscode-icons",
+                "ms-vscode.live-share",
+                "ms-azuretools.vscode-docker", // Docker management GUI in VS Code
+
+                // Language-specific extensions
+                "ms-vscode.vscode-typescript-next", // If TypeScript is installed via feature
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "ms-python.black-formatter", // Python formatter
+                
+                // Database extensions
+                "ms-mssql.mssql", // Generic for SQL, or look for a dedicated PostgreSQL extension if you prefer
+                
+                // Testing
+                "ms-playwright.playwright", // VS Code extension for Playwright
+
+                // **AI Coding Assistant Extensions (Install all you want to try!)**
+                "your-publisher.kilo-code-extension-id", // <-- Replace with actual Kilo Code ID
+                "github.copilot",
+                "github.copilot-chat",
+                "codeium.codeium",
+                "continue.continue",
+                // Add any other AI coding assistants you discover!
+            ]
+        }
+    },
+    // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+    "remoteUser": "vscode" // Recommended to run as a non-root user for security
+}

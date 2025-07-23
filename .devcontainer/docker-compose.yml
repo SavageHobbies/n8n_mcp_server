@@ -1,0 +1,40 @@
+# .devcontainer/docker-compose.yml (NEW)
+version: '3.8'
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      - ..:/workspaces/${localWorkspaceFolderBasename}:cached
+    command: sleep infinity
+    # Define environment variables for your Node.js app to connect to the DigitalOcean DB
+    environment:
+      # It's best practice to put these in a .env file and reference it
+      # env_file:
+      #   - .env # <-- Recommended for production & sensitive data
+      
+      # For dev container convenience, you can put them directly here, but
+      # AVOID committing sensitive data to Git if you use this directly!
+      # For your doadmin account, you might put this in a .env file in your project root.
+      # For a more secure approach, consider using a .env file locally
+      # and referring to it via 'env_file' in docker-compose.yml.
+      # For this example, I'll put them directly for clarity, but be careful.
+      DATABASE_URL: "postgresql://doadmin:AVNS_79goOiOm_tqiL_Kcf_a@buyonemedia-do-user-23537463-0.f.db.ondigitalocean.com:25060/defaultdb?sslmode=require"
+      DB_HOST: "buyonemedia-do-user-23537463-0.f.db.ondigitalocean.com"
+      DB_PORT: "25060"
+      DB_USER: "doadmin"
+      DB_PASSWORD: "AVNS_79goOiOm_tqiL_Kcf_a"
+      DB_NAME: "defaultdb"
+      DB_SSLMODE: "require"
+      
+      # Other app environment variables (e.g., Node.js port)
+      NODE_ENV: "development"
+      PORT: 3000
+
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
