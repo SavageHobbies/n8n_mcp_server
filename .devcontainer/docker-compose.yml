@@ -1,40 +1,54 @@
-# .devcontainer/docker-compose.yml (NEW)
 version: '3.8'
 services:
   app:
     build:
       context: ..
-      dockerfile: .devcontainer/Dockerfile
+      dockerfile: .devcontainer/Dockerfile # This points to the Dockerfile that builds your dev container image
+    command: sleep infinity # Keeps the container running
     volumes:
-      - ..:/workspaces/${localWorkspaceFolderBasename}:cached
-    command: sleep infinity
-    # Define environment variables for your Node.js app to connect to the DigitalOcean DB
+      - ..:/workspaces/${localWorkspaceFolderBasename}:cached # Mounts your entire project folder into the container
+    networks:
+      - default # Connects to the default network for dev container services
     environment:
-      # It's best practice to put these in a .env file and reference it
-      # env_file:
-      #   - .env # <-- Recommended for production & sensitive data
-      
-      # For dev container convenience, you can put them directly here, but
-      # AVOID committing sensitive data to Git if you use this directly!
-      # For your doadmin account, you might put this in a .env file in your project root.
-      # For a more secure approach, consider using a .env file locally
-      # and referring to it via 'env_file' in docker-compose.yml.
-      # For this example, I'll put them directly for clarity, but be careful.
-      DATABASE_URL: "postgresql://doadmin:AVNS_79goOiOm_tqiL_Kcf_a@buyonemedia-do-user-23537463-0.f.db.ondigitalocean.com:25060/defaultdb?sslmode=require"
-      DB_HOST: "buyonemedia-do-user-23537463-0.f.db.ondigitalocean.com"
-      DB_PORT: "25060"
-      DB_USER: "doadmin"
-      DB_PASSWORD: "AVNS_79goOiOm_tqiL_Kcf_a"
-      DB_NAME: "defaultdb"
-      DB_SSLMODE: "require"
-      
-      # Other app environment variables (e.g., Node.js port)
+      # LOCAL DEVELOPMENT DATABASE CONNECTION (connects to the 'db' service defined below)
+      DATABASE_URL: postgresql://devuser:devpassword@db:5432/devdb
+      DB_HOST: db
+      DB_NAME: devdb
+      DB_PASSWORD: devpassword
+      DB_PORT: "5432"
+      DB_SSLMODE: disable # Local dev DB usually doesn't need SSL
+      DB_USER: devuser
+      # Your other API keys can be referenced here from your local .env file
+      # For now, these are blank. You can fill them in your local .env file later if needed for local dev.
+      GEMINI_API_KEY: ""
+      AMAZON_CLIENT_ID: ""
+      AMAZON_CLIENT_SECRET: ""
+      AMAZON_REFRESH_TOKEN: ""
+      AMAZON_REGION: ""
+      EBAY_APP_ID: ""
+      EBAY_DEV_ID: ""
+      EBAY_CERT_ID: ""
+      EBAY_ENVIRONMENT: ""
+      UPC_DATABASE_API_KEY: ""
+      # Other app environment variables
       NODE_ENV: "development"
       PORT: 3000
 
+  db:
+    image: postgres:16-alpine # Using a lightweight PostgreSQL 16 image
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: devdb
+      POSTGRES_USER: devuser
+      POSTGRES_PASSWORD: devpassword
+    volumes:
+      - postgres_devcontainer_data:/var/lib/postgresql/data # Persistent volume for local DB data
     networks:
-      - app-network
+      - default
+
+volumes:
+  postgres_devcontainer_data: {} # Declares the named volume for local PostgreSQL data persistence
 
 networks:
-  app-network:
-    driver: bridge
+  default:
+    driver: bridge # Default bridge network for services within this compose file

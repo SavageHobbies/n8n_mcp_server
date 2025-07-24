@@ -23,10 +23,12 @@
             "configureZshAsDefault": true
         },
         "ghcr.io/devcontainers/features/git:1": {}, // Explicitly ensure Git is there
-        "ghcr.io/devcontainers/features/oh-my-zsh:0": {}, // For Zsh users
+
         
         // Docker-in-Docker for building/running other containers *from inside* your 'app' service
-        "ghcr.io/devcontainers/features/docker-in-docker:2": {} 
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {
+    "version": "latest"
+} 
     },
 
     // Uncomment and customize forwardPorts for your Node.js app and PostgreSQL
