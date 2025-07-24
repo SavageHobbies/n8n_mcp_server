@@ -1,0 +1,3 @@
+requests
+psycopg2-binary
+python-dotenv # If you read .env files in your script
