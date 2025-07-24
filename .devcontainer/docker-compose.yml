@@ -3,23 +3,22 @@ services:
   app:
     build:
       context: ..
-      dockerfile: .devcontainer/Dockerfile # This points to the Dockerfile that builds your dev container image
+      dockerfile: .devcontainer/Dockerfile
     command: sleep infinity # Keeps the container running
     volumes:
       - ..:/workspaces/${localWorkspaceFolderBasename}:cached # Mounts your entire project folder into the container
-    networks:
-      - default # Connects to the default network for dev container services
+    env_file: # <--- This tells Docker Compose to load environment variables from this file
+      - ./.env.devcontainer
     environment:
       # LOCAL DEVELOPMENT DATABASE CONNECTION (connects to the 'db' service defined below)
-      DATABASE_URL: postgresql://devuser:devpassword@db:5432/devdb
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=${DB_SSLMODE}
       DB_HOST: db
       DB_NAME: devdb
-      DB_PASSWORD: devpassword
+      DB_PASSWORD: ${DB_PASSWORD} # This will be loaded from .env.devcontainer
       DB_PORT: "5432"
       DB_SSLMODE: disable # Local dev DB usually doesn't need SSL
       DB_USER: devuser
-      # Your other API keys can be referenced here from your local .env file
-      # For now, these are blank. You can fill them in your local .env file later if needed for local dev.
+      # Other API keys - these should also ideally be in .env.devcontainer or a similar untracked file
       GEMINI_API_KEY: ""
       AMAZON_CLIENT_ID: ""
       AMAZON_CLIENT_SECRET: ""
@@ -32,10 +31,10 @@ services:
       UPC_DATABASE_API_KEY: ""
       # Other app environment variables
       NODE_ENV: "development"
-      PORT: 3000
+      PORT: "3000"
 
   db:
-    image: postgres:16-alpine # Using a lightweight PostgreSQL 16 image
+    image: postgres:16-alpine # Using a lightweight PostgreSQL 16 image for local development
     restart: unless-stopped
     environment:
       POSTGRES_DB: devdb

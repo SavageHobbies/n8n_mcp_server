@@ -1,0 +1,184 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Scan Barcode Input\n\n| Task (old)                     | New MCP or Node                | Why                                                                                                                          |\n| ------------------------------ | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |\n| **Clean & Infer Type** (regex) | **MCP “Barcode-Normalizer”**   | Centralise all barcode rules in one Python file; easier to maintain.                                                         |\n| **Check Exists**               | **Postgres Node** (unchanged)  | DB lookup is still fastest in n8n.                                                                                           |\n| **Increment Qty**              | **MCP “Inventory-Increment”**  | Encapsulate the UPSERT logic (including race-condition handling) in a single Python MCP that can be unit-tested outside n8n. |\n| **Trigger Discovery**          | **MCP “Discovery-Dispatcher”** | The dispatcher decides which downstream MCPs (Amazon, eBay, UPCitemdb) to call and in what order; n8n only orchestrates.     |\n\n\n🎯 Purpose\nThis workflow is the entry point for every barcode scan.\nIt decides in <150 ms whether to:\n+1 qty if the product already exists, or\nkick-off discovery (Workflow #2) if the product is new.\n\n🔧 How to Use\nPOST to https://<your-n8n>/webhook/scan\nJSON\n\n{\n  \"barcode\": \"012345678905\",\n  \"qty\": 1\n}\nInstant reply\n{\"status\":\"existing\",\"product\":{...,\"newQty\":4}}\n→ Front-end shows “Qty increased to 4”.\n{\"status\":\"new\",\"message\":\"Product discovery started.\"}\n→ Front-end shows “Adding new product…”.\n\n🧩 Key Nodes\n\nNode\tWhat to tweak\nClean & Infer Type\tChange regex or add new barcode formats.\nPostgres – Check Exists\tSwap table/column names if your schema differs.\nExecute Workflow – Product Discovery\tReplace WORKFLOW_2_ID with the real UUID of Workflow #2.\n\n✅ Test Curl\n\ncurl -X POST https://<your-n8n>/webhook/scan \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"barcode\":\"0-12345-67890-5\",\"qty\":2}'",
+        "height": 800,
+        "width": 1600
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -288,
+        -112
+      ],
+      "id": "b4fe09f3-4c46-4397-bdf1-da8b77c4192e",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "scan",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "c399d411-a8c2-4b55-957a-4682db62e08d",
+      "name": "Webhook – Scan",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        64,
+        208
+      ],
+      "webhookId": "scan-barcode"
+    },
+    {
+      "parameters": {
+        "command": "=echo '{{ JSON.stringify($json.body) }}' | python3 /opt/mcp_servers/mcp_barcode_normalizer.py"
+      },
+      "id": "556566ae-6021-4d9b-8210-8ec6fc8c32ea",
+      "name": "MCP – Barcode Normalizer",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        288,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.length }}",
+              "operation": "larger"
+            }
+          ]
+        }
+      },
+      "id": "8c28dda4-6f44-42ec-bfbc-87a399801ca4",
+      "name": "IF – Exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        720,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=echo '{{ JSON.stringify($json.body) }}' | python3 /opt/mcp_servers/mcp_inventory_increment.py"
+      },
+      "id": "05d967d1-e7f1-4666-a980-21be2844c754",
+      "name": "MCP – Inventory Increment",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        944,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=echo '{{ JSON.stringify($json.body) }}' | python3 /opt/mcp_servers/mcp_discovery_dispatcher.py"
+      },
+      "id": "e0798105-3861-42a3-be0f-dd998964004f",
+      "name": "MCP – Discovery Dispatcher",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        944,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, qty, title FROM products WHERE barcode = $1 LIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ $json.barcode }}"
+        }
+      },
+      "id": "a4bfd921-0638-413f-8e49-c8d9ccdb0bcb",
+      "name": "Postgres – Check Exists1",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        496,
+        208
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "lvlMTMn6tNRfOzfJ",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook – Scan": {
+      "main": [
+        [
+          {
+            "node": "MCP – Barcode Normalizer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP – Barcode Normalizer": {
+      "main": [
+        [
+          {
+            "node": "Postgres – Check Exists1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF – Exists?": {
+      "main": [
+        [
+          {
+            "node": "MCP – Inventory Increment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "MCP – Discovery Dispatcher",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres – Check Exists1": {
+      "main": [
+        [
+          {
+            "node": "IF – Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "86ef325783f5d5be69e6d0ac7d85c57547a8fac7edc65afea307eb709434673e"
+  }
+}
