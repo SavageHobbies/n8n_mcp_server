@@ -1,3 +1,10 @@
 requests
 psycopg2-binary
-python-dotenv # If you read .env files in your script
+python-dotenv
+# Common AI/ML related libraries - uncomment if your scripts use them
+# openai
+# langchain
+# transformers
+# Other utility libraries (uncomment if you know your scripts use them)
+# beautifulsoup4
+# lxml
